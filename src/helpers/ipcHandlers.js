@@ -10,6 +10,7 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const arkAnalysisService = require('../services/ArkAnalysisService');
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
@@ -777,6 +778,13 @@ class IPCHandlers {
     });
 
     ipcMain.handle("paste-text", async (event, text, options) => {
+      console.log('[log]paste-text文案: ', text);
+      // const analysisText = await arkAnalysisService.analyzeText(text).then(res => {
+      //   console.log('arkAnalysisService.analyzeText: res', res);
+      //   return res.analysis;
+      // });
+      // console.log('analysisText', analysisText);
+      // text = analysisText;
       const targetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
         ? this.textEditMonitor.lastTargetPid
         : null;
