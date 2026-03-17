@@ -11,6 +11,8 @@ const {
   cleanupFiles,
 } = require("./lib/download-utils");
 
+const fetchJson = require("./mockData/fetchResult");
+
 const WHISPER_CPP_REPO = "OpenWhispr/whisper.cpp";
 
 // Version can be pinned via environment variable for reproducible builds
@@ -41,8 +43,20 @@ const BINARIES = {
 
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");
 
+function formatRelease(release) {
+  return {
+    tag: release.tag_name,
+    url: release.html_url,
+    assets: (release.assets || []).map((asset) => ({
+      name: asset.name,
+      url: asset.browser_download_url,
+    })),
+  };
+}
+
 // Cache the release info to avoid multiple API calls
-let cachedRelease = null;
+let cachedRelease = formatRelease(fetchJson);
+
 
 async function getRelease() {
   if (cachedRelease) return cachedRelease;
