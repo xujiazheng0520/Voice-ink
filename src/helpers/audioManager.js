@@ -926,6 +926,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       };
 
       this.mediaRecorder.onstop = async () => {
+        logger.info('结束录音');
         // Clean up silence detection
         if (this._silenceInterval) {
           clearInterval(this._silenceInterval);
@@ -1071,6 +1072,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
       let result;
       let activeModel;
+      logger.info('processAudio fied: ', {useLocalWhisper, isOpenWhisprCloudMode});
       if (useLocalWhisper) {
         if (localProvider === "nvidia") {
           activeModel = parakeetModel;

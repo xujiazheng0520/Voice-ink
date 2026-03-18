@@ -302,6 +302,7 @@ class WhisperManager {
       port: this.serverManager.port,
     });
 
+    console.log('语音识别参数：', language, initialPrompt);
     const startTime = Date.now();
     const result = await this.serverManager.transcribe(audioBuffer, { language, initialPrompt });
     const elapsed = Date.now() - startTime;
