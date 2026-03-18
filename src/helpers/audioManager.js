@@ -1098,6 +1098,19 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         return;
       }
 
+      // 打印转录结果日志
+      logger.info(
+        "Transcription completed successfully",
+        {
+          text: result?.text,
+          textLength: result?.text?.length || 0,
+          source: result?.source,
+          success: result?.success,
+          model: activeModel,
+        },
+        "transcription"
+      );
+
       this.onTranscriptionComplete?.(result);
 
       if (result?.source === "openwhispr") {

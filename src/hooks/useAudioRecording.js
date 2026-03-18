@@ -113,6 +113,18 @@ export const useAudioRecording = (toast, options = {}) => {
         if (result.success) {
           const transcribedText = result.text?.trim();
 
+          // 打印转录完成回调日志
+          logger.info(
+            "onTranscriptionComplete callback triggered",
+            {
+              hasText: !!transcribedText,
+              textLength: transcribedText?.length || 0,
+              source: result.source,
+              text: transcribedText,
+            },
+            "transcription"
+          );
+
           if (!transcribedText) {
             return;
           }
@@ -126,6 +138,18 @@ export const useAudioRecording = (toast, options = {}) => {
             isStreaming ? { fromStreaming: true } : {}
           );
           const pasteMode = pasteResult?.mode || (pasteResult?.success ? "pasted" : "failed");
+
+          // 打印粘贴结果日志
+          logger.info(
+            "Text paste completed",
+            {
+              pasteMode,
+              success: pasteResult?.success,
+              textLength: result.text.length,
+              pasteTimeMs: Math.round(performance.now() - pasteStart),
+            },
+            "transcription"
+          );
 
           if (pasteMode === "copied") {
             window.electronAPI?.showDictationPanel?.();
