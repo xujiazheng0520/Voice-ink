@@ -167,6 +167,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   checkAccessibilityPermission: () => ipcRenderer.invoke("check-accessibility-permission"),
   readClipboard: () => ipcRenderer.invoke("read-clipboard"),
   writeClipboard: (text) => ipcRenderer.invoke("write-clipboard", text),
+  copySelectedTextAndReadClipboard: (options = {}) =>
+    ipcRenderer.invoke("copy-selection-and-read-clipboard", options),
   checkPasteTools: () => ipcRenderer.invoke("check-paste-tools"),
 
   // Local Whisper functions (whisper.cpp)

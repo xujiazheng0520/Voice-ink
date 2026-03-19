@@ -450,6 +450,15 @@ declare global {
       checkAccessibilityPermission: () => Promise<boolean>;
       readClipboard: () => Promise<string>;
       writeClipboard: (text: string) => Promise<{ success: boolean }>;
+      copySelectedTextAndReadClipboard: (
+        options?: { restoreOriginalClipboard?: boolean }
+      ) => Promise<{
+        success: boolean;
+        text: string;
+        platform: string;
+        message?: string;
+        elapsedMs?: number;
+      }>;
       checkPasteTools: () => Promise<PasteToolsResult>;
 
       // Audio

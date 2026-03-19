@@ -16,6 +16,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [partialTranscript, setPartialTranscript] = useState("");
+  const [selectedText, setSelectedText] = useState("");
   const audioManagerRef = useRef(null);
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
@@ -37,6 +38,44 @@ export const useAudioRecording = (toast, options = {}) => {
 
       const currentState = audioManagerRef.current.getState();
       if (currentState.isRecording || currentState.isProcessing) return false;
+
+      // [TIP]: 录音时自动获取用户选中文本功能，暂时不做
+      // Best-effort: capture what's selected in the focused external app.
+      // This intentionally runs before acquiring the microphone.
+      // try {
+      //   const selectionResult = await window.electronAPI?.copySelectedTextAndReadClipboard?.();
+      //   const captured = selectionResult?.success ? selectionResult.text : "";
+      //   setSelectedText(captured);
+      //   if (audioManagerRef.current) {
+      //     audioManagerRef.current.preRecordingSelectedText = captured;
+      //   }
+
+      //   const maxLogLen = 2000;
+      //   const safeLogText =
+      //     typeof captured === "string" && captured.length > maxLogLen
+      //       ? `${captured.slice(0, maxLogLen)}... (truncated)`
+      //       : captured;
+
+      //   logger.debug(
+      //     "Pre-recording selection captured",
+      //     {
+      //       hasSelection: !!captured,
+      //       selectionLength: captured?.length || 0,
+      //       selectedText: safeLogText,
+      //     },
+      //     "clipboard"
+      //   );
+      // } catch (err) {
+      //   setSelectedText("");
+      //   if (audioManagerRef.current) {
+      //     audioManagerRef.current.preRecordingSelectedText = "";
+      //   }
+      //   logger.debug(
+      //     "Pre-recording selection capture failed (non-fatal)",
+      //     { error: err?.message || String(err) },
+      //     "clipboard"
+      //   );
+      // }
 
       const didStart = audioManagerRef.current.shouldUseStreaming()
         ? await audioManagerRef.current.startStreamingRecording()
@@ -74,6 +113,7 @@ export const useAudioRecording = (toast, options = {}) => {
 
       if (didStop) {
         void playStopCue();
+        setSelectedText("");
       }
 
       return didStop;
@@ -291,9 +331,13 @@ export const useAudioRecording = (toast, options = {}) => {
     if (audioManagerRef.current) {
       const state = audioManagerRef.current.getState();
       if (state.isStreaming) {
-        return await audioManagerRef.current.stopStreamingRecording();
+        const res = await audioManagerRef.current.stopStreamingRecording();
+        setSelectedText("");
+        return res;
       }
-      return audioManagerRef.current.cancelRecording();
+      const res = audioManagerRef.current.cancelRecording();
+      setSelectedText("");
+      return res;
     }
     return false;
   };
@@ -319,6 +363,7 @@ export const useAudioRecording = (toast, options = {}) => {
     isStreaming,
     transcript,
     partialTranscript,
+    selectedText,
     startRecording,
     stopRecording,
     cancelRecording,

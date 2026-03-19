@@ -853,6 +853,12 @@ class IPCHandlers {
       return this.clipboardManager.readClipboard();
     });
 
+    // Capture currently-selected external app text via Ctrl/Cmd+C,
+    // then read it back from system clipboard.
+    ipcMain.handle("copy-selection-and-read-clipboard", async (event, options = {}) => {
+      return this.clipboardManager.copySelectedTextAndReadClipboard(options);
+    });
+
     ipcMain.handle("write-clipboard", async (event, text) => {
       return this.clipboardManager.writeClipboard(text, event.sender);
     });

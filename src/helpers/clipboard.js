@@ -59,6 +59,15 @@ const RESTORE_DELAYS = {
   linux: 200,
 };
 
+// Copy selection delays: slightly larger than immediate reads to allow
+// clipboard propagation across apps/compositors.
+const COPY_DELAYS = {
+  darwin: 120,
+  win32_nircmd: 30,
+  win32_pwsh: 60,
+  linux: 60,
+};
+
 const WINDOWS_FOCUS_PROBE_SCRIPT = `
 try {
   Add-Type -AssemblyName UIAutomationClient | Out-Null
@@ -1345,7 +1354,7 @@ class ClipboardManager {
           const timeoutId = setTimeout(() => {
             timedOut = true;
             killProcess(proc, "SIGKILL");
-          }, 2000);
+          }, 1500);
 
           proc.on("close", (code) => {
             if (timedOut) return reject(new Error("linux-fast-paste timed out"));
@@ -1872,6 +1881,387 @@ Would you like to open System Settings now?`;
     if (process.platform !== "darwin") return;
     this.checkAccessibilityPermissions().catch(() => {});
     this.resolveFastPasteBinary();
+  }
+
+  async _waitForClipboardText({
+    originalTrimmed,
+    timeoutMs = 1200,
+    intervalMs = 60,
+    minNonEmptyBeforeReturnMs = 250,
+  }) {
+    const startedAt = Date.now();
+    let lastText = clipboard.readText();
+    let lastTrimmed = (lastText || "").trim();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      // Clipboard updates are typically asynchronous; poll briefly.
+      const currentText = clipboard.readText();
+      const currentTrimmed = (currentText || "").trim();
+      lastText = currentText;
+      lastTrimmed = currentTrimmed;
+
+      // If clipboard changed from original, that's the best signal.
+      if (currentTrimmed && currentTrimmed !== originalTrimmed) return currentText;
+
+      // If original was empty, wait a bit and then return first non-empty clipboard.
+      if (
+        !originalTrimmed &&
+        currentTrimmed &&
+        Date.now() - startedAt >= minNonEmptyBeforeReturnMs
+      ) {
+        return currentText;
+      }
+
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+
+    // Fall back to last observed value (may equal original if selection text is identical).
+    return lastText;
+  }
+
+  /**
+   * Copy the currently-selected text in the focused external app into the system
+   * clipboard (Cmd/Ctrl+C) and then read the clipboard text back.
+   *
+   * Designed to be best-effort and non-blocking for dictation flow.
+   */
+  async copySelectedTextAndReadClipboard(options = {}) {
+    const webContents = options.webContents;
+    const restoreOriginalClipboard = options.restoreOriginalClipboard !== false;
+    const startTime = Date.now();
+    const platform = process.platform;
+
+    const originalClipboard = clipboard.readText();
+    const originalTrimmed = (originalClipboard || "").trim();
+
+    let restoreDelayMs = RESTORE_DELAYS.linux;
+    try {
+      if (platform === "darwin") {
+        restoreDelayMs = RESTORE_DELAYS.darwin;
+
+        const hasPermissions = await this.checkAccessibilityPermissions();
+        if (!hasPermissions) {
+          throw new Error("accessibility_permission_required");
+        }
+
+        const cmd = "osascript";
+        const args = ["-e", 'tell application "System Events" to key code 8 using command down'];
+
+        await new Promise((resolve, reject) => {
+          let stderr = "";
+          let finished = false;
+          const p = spawn(cmd, args);
+
+          const timeoutId = setTimeout(() => {
+            if (finished) return;
+            finished = true;
+            killProcess(p, "SIGKILL");
+            reject(new Error("copy_timed_out"));
+          }, 2000);
+
+          p.stderr?.on("data", (data) => {
+            stderr += data.toString();
+          });
+
+          p.on("error", (error) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timeoutId);
+            reject(error);
+          });
+
+          p.on("close", (code) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timeoutId);
+            if (code === 0) resolve();
+            else reject(new Error(`copy_failed (osascript code ${code}): ${stderr.trim()}`));
+          });
+        });
+      } else if (platform === "win32") {
+        const nircmdPath = this.getNircmdPath();
+        if (nircmdPath) {
+          restoreDelayMs = RESTORE_DELAYS.win32_nircmd;
+          await new Promise((resolve, reject) => {
+            let stderr = "";
+            let finished = false;
+            const p = spawn(nircmdPath, ["sendkeypress", "ctrl+c"]);
+
+            const timeoutId = setTimeout(() => {
+              if (finished) return;
+              finished = true;
+              killProcess(p, "SIGKILL");
+              reject(new Error("copy_timed_out"));
+            }, 1500);
+
+            p.stderr?.on("data", (data) => {
+              stderr += data.toString();
+            });
+
+            p.on("error", (error) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              reject(error);
+            });
+
+            p.on("close", (code) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              if (code === 0) resolve();
+              else reject(new Error(`copy_failed (nircmd code ${code}): ${stderr.trim()}`));
+            });
+          });
+        } else {
+          restoreDelayMs = RESTORE_DELAYS.win32_pwsh;
+          const copyDelay = COPY_DELAYS.win32_pwsh;
+          await new Promise((resolve, reject) => {
+            let stderr = "";
+            let finished = false;
+            const ps = spawn("powershell.exe", [
+              "-NoProfile",
+              "-NonInteractive",
+              "-WindowStyle",
+              "Hidden",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-Command",
+              "[void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');[System.Windows.Forms.SendKeys]::SendWait('^c')",
+            ]);
+
+            const timeoutId = setTimeout(() => {
+              if (finished) return;
+              finished = true;
+              killProcess(ps, "SIGKILL");
+              reject(new Error("copy_timed_out"));
+            }, 2500);
+
+            ps.stderr?.on("data", (data) => {
+              stderr += data.toString();
+            });
+
+            ps.on("error", (error) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              reject(error);
+            });
+
+            ps.on("close", (code) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              if (code === 0) {
+                // Give the target app a tiny moment to update clipboard.
+                setTimeout(resolve, copyDelay);
+              } else {
+                reject(new Error(`copy_failed (powershell code ${code}): ${stderr.trim()}`));
+              }
+            });
+          });
+        }
+      } else if (platform === "linux") {
+        restoreDelayMs = RESTORE_DELAYS.linux;
+
+        const { isWayland, xwaylandAvailable, isKde, isWlroots } = getLinuxSessionInfo();
+        const xdotoolExists = this.commandExists("xdotool");
+        const wtypeExists = this.commandExists("wtype");
+        const ydotoolExists = this.commandExists("ydotool");
+        const ydotoolDaemonRunning = ydotoolExists && this._isYdotoolDaemonRunning();
+
+        const terminalClasses = [
+          "konsole",
+          "gnome-terminal",
+          "terminal",
+          "kitty",
+          "alacritty",
+          "terminator",
+          "xterm",
+          "urxvt",
+          "rxvt",
+          "tilix",
+          "terminology",
+          "wezterm",
+          "foot",
+          "st",
+          "yakuake",
+        ];
+
+        // Prefer xdotool window activation so the keystroke reaches the focused external app.
+        const preDetectTargetWindow = () => {
+          if (!xdotoolExists || (isWayland && !xwaylandAvailable)) return null;
+          try {
+            const result = spawnSync("xdotool", ["getactivewindow"]);
+            return result.status === 0 ? result.stdout.toString().trim() || null : null;
+          } catch {
+            return null;
+          }
+        };
+
+        const preDetectWindowClass = (windowId) => {
+          if (!xdotoolExists || (isWayland && !xwaylandAvailable)) return null;
+          try {
+            const args = windowId
+              ? ["getwindowclassname", windowId]
+              : ["getactivewindow", "getwindowclassname"];
+            const result = spawnSync("xdotool", args);
+            return result.status === 0 ? result.stdout.toString().toLowerCase().trim() || null : null;
+          } catch {
+            return null;
+          }
+        };
+
+        const targetWindowId = preDetectTargetWindow();
+        let detectedWindowClass = preDetectWindowClass(targetWindowId);
+
+        if (!detectedWindowClass && isKde && typeof this._detectKdeWindowClass === "function") {
+          detectedWindowClass = this._detectKdeWindowClass();
+        }
+
+        const inTerminal = detectedWindowClass
+          ? terminalClasses.some((t) => detectedWindowClass.includes(t))
+          : false;
+
+        const copyKeys = inTerminal ? "ctrl+shift+c" : "ctrl+c";
+
+        const xdotoolArgs = targetWindowId
+          ? ["windowactivate", "--sync", targetWindowId, "key", copyKeys]
+          : ["key", copyKeys];
+
+        const wtypeArgs = inTerminal
+          ? ["-M", "ctrl", "-M", "shift", "-k", "c", "-m", "shift", "-m", "ctrl"]
+          : ["-M", "ctrl", "-k", "c", "-m", "ctrl"];
+
+        // ydotool numeric keycodes depend on ydotool version/layout; we rely on
+        // legacy "key names" when possible, otherwise fall back to an assumed KEY_C=46
+        // based on common evdev mappings (best-effort).
+        const legacyYdotool = this._isYdotoolLegacy();
+        const ydotoolArgs = (() => {
+          if (!ydotoolDaemonRunning) return null;
+          if (legacyYdotool) return ["key", copyKeys];
+          const cKeyCode = 46; // best-effort
+          if (inTerminal) {
+            return ["key", "29:1", "42:1", `${cKeyCode}:1`, `${cKeyCode}:0`, "42:0", "29:0"];
+          }
+          return ["key", "29:1", `${cKeyCode}:1`, `${cKeyCode}:0`, "29:0"];
+        })();
+
+        const candidates = [];
+        if (!isWayland) {
+          if (xdotoolExists) candidates.push({ cmd: "xdotool", args: xdotoolArgs });
+          if (wtypeExists) candidates.push({ cmd: "wtype", args: wtypeArgs });
+          if (ydotoolArgs) candidates.push({ cmd: "ydotool", args: ydotoolArgs });
+        } else if (isWlroots) {
+          if (wtypeExists) candidates.push({ cmd: "wtype", args: wtypeArgs });
+          if (xwaylandAvailable && xdotoolExists) candidates.push({ cmd: "xdotool", args: xdotoolArgs });
+          if (ydotoolArgs) candidates.push({ cmd: "ydotool", args: ydotoolArgs });
+        } else {
+          if (ydotoolArgs) candidates.push({ cmd: "ydotool", args: ydotoolArgs });
+          if (xwaylandAvailable && xdotoolExists) candidates.push({ cmd: "xdotool", args: xdotoolArgs });
+          if (wtypeExists) candidates.push({ cmd: "wtype", args: wtypeArgs });
+        }
+
+        const runTool = (tool) =>
+          new Promise((resolve, reject) => {
+            let stderr = "";
+            let finished = false;
+            const p = spawn(tool.cmd, tool.args);
+
+            const timeoutId = setTimeout(() => {
+              if (finished) return;
+              finished = true;
+              killProcess(p, "SIGKILL");
+              reject(new Error(`${tool.cmd} timed out`));
+            }, 1500);
+
+            p.stderr?.on("data", (data) => {
+              stderr += data.toString();
+            });
+
+            p.on("error", (error) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              reject(error);
+            });
+
+            p.on("close", (code) => {
+              if (finished) return;
+              finished = true;
+              clearTimeout(timeoutId);
+              if (code === 0) resolve();
+              else reject(new Error(`${tool.cmd} exited ${code}: ${stderr.trim()}`));
+            });
+          });
+
+        let lastToolError = null;
+        let succeeded = false;
+        for (const tool of candidates) {
+          if (!this.commandExists(tool.cmd)) continue;
+          try {
+            await runTool(tool);
+            succeeded = true;
+            break;
+          } catch (err) {
+            lastToolError = err;
+          }
+        }
+
+        if (!succeeded) {
+          throw lastToolError || new Error("linux_copy_tool_unavailable");
+        }
+
+        // Give clipboard a brief moment to propagate on Wayland/X11.
+        await new Promise((r) => setTimeout(r, COPY_DELAYS.linux));
+      } else {
+        throw new Error("unsupported_platform");
+      }
+
+      // Wait briefly for clipboard propagation.
+      await new Promise((r) => setTimeout(r, platform === "darwin" ? COPY_DELAYS.darwin : 60));
+      const copied = await this._waitForClipboardText({
+        originalTrimmed,
+        timeoutMs: options.timeoutMs || 1200,
+        intervalMs: options.pollIntervalMs || 60,
+      });
+
+      const text = (copied || "").trim();
+      return {
+        success: true,
+        text,
+        platform,
+        elapsedMs: Date.now() - startTime,
+      };
+    } catch (error) {
+      const message =
+        error?.message ??
+        (typeof error?.toString === "function" ? error.toString() : String(error));
+      return {
+        success: false,
+        text: "",
+        platform,
+        message,
+        elapsedMs: Date.now() - startTime,
+      };
+    } finally {
+      if (!restoreOriginalClipboard) return;
+
+      // Restore clipboard after returning the captured selection.
+      setTimeout(() => {
+        try {
+          if (platform === "linux") {
+            const { isWayland } = getLinuxSessionInfo();
+            if (isWayland) this._writeClipboardWayland(originalClipboard, webContents);
+            else clipboard.writeText(originalClipboard);
+          } else {
+            clipboard.writeText(originalClipboard);
+          }
+        } catch {
+          // Best-effort restore; ignore failures.
+        }
+      }, restoreDelayMs);
+    }
   }
 
   async readClipboard() {
