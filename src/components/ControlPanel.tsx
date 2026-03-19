@@ -379,23 +379,25 @@ export default function ControlPanel() {
           authLoaded={authLoaded}
           isProUser={!!(usage?.isSubscribed || usage?.isTrial)}
           usageLoaded={usage?.hasLoaded ?? false}
-          updateAction={
-            !updateStatus.isDevelopment &&
-            (updateStatus.updateAvailable ||
-              updateStatus.updateDownloaded ||
-              isDownloading ||
-              isInstalling) ? (
-              <Button
-                variant={updateStatus.updateDownloaded ? "default" : "outline"}
-                size="sm"
-                onClick={handleUpdateClick}
-                disabled={isInstalling || isDownloading}
-                className="gap-1.5 text-xs w-full h-7"
-              >
-                {getUpdateButtonContent()}
-              </Button>
-            ) : undefined
-          }
+          // 暂时隐藏更新入口（保留原逻辑，后续恢复时取消注释）
+          // updateAction={
+          //   !updateStatus.isDevelopment &&
+          //   (updateStatus.updateAvailable ||
+          //     updateStatus.updateDownloaded ||
+          //     isDownloading ||
+          //     isInstalling) ? (
+          //     <Button
+          //       variant={updateStatus.updateDownloaded ? "default" : "outline"}
+          //       size="sm"
+          //       onClick={handleUpdateClick}
+          //       disabled={isInstalling || isDownloading}
+          //       className="gap-1.5 text-xs w-full h-7"
+          //     >
+          //       {getUpdateButtonContent()}
+          //     </Button>
+          //   ) : undefined
+          // }
+          updateAction={undefined}
         />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div

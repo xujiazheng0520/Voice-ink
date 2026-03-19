@@ -296,10 +296,10 @@ const LINUX_EXAMPLES = [
 ] as const;
 
 export const VALIDATION_RULES = [
-  "Uses three keys or fewer",
-  "Includes at least one modifier or non-alphanumeric key",
-  "Does not mix left and right versions of the same modifier",
-  "Is not reserved by the system",
+  "最多使用三个按键",
+  "至少包含一个修饰键或非字母数字键",
+  "不要混用同一修饰键的左右键位",
+  "不能与系统保留快捷键冲突",
 ] as const;
 
 function normalizeModifier(part: string, platform: Platform): string | null {
@@ -502,10 +502,10 @@ export function getValidationMessage(
 
   if (result.errorCode === "RESERVED") {
     const label = formatHotkeyLabelForPlatform(hotkey, platform);
-    return `${label} is reserved by the system`;
+    return `${label} 是系统保留快捷键`;
   }
 
-  return result.error || "That shortcut is not supported";
+  return result.error || "该快捷键不受支持";
 }
 
 export function validateHotkey(
@@ -514,14 +514,14 @@ export function validateHotkey(
   existingHotkeys: string[] = []
 ): ValidationResult {
   if (!hotkey || hotkey.trim() === "") {
-    return { valid: false, error: "Please enter a valid shortcut." };
+    return { valid: false, error: "请输入有效的快捷键。" };
   }
 
   if (isGlobeLikeHotkey(hotkey)) {
     if (platform !== "darwin") {
       return {
         valid: false,
-        error: "The Globe/Fn key is only available on macOS.",
+        error: "Globe/Fn 键仅在 macOS 上可用。",
         errorCode: "INVALID_GLOBE",
       };
     }
@@ -536,7 +536,7 @@ export function validateHotkey(
   if (parts.length > 3) {
     return {
       valid: false,
-      error: "Shortcuts are limited to three keys.",
+      error: "快捷键最多只能包含三个按键。",
       errorCode: "TOO_MANY_KEYS",
     };
   }
@@ -544,7 +544,7 @@ export function validateHotkey(
   if (isLeftRightMix(parts)) {
     return {
       valid: false,
-      error: "Do not mix left and right versions of the same modifier in one shortcut.",
+      error: "同一个快捷键中不要混用同一修饰键的左右键位。",
       errorCode: "LEFT_RIGHT_MIX",
     };
   }
@@ -568,8 +568,7 @@ export function validateHotkey(
   if (!hasModifier && !hasSpecialKey) {
     return {
       valid: false,
-      error:
-        "Shortcuts must include a modifier or a non-alphanumeric key (like arrows, space, or function keys).",
+      error: "快捷键必须包含修饰键，或包含方向键/空格/F 键等非字母数字键。",
       errorCode: "NO_MODIFIER_OR_SPECIAL",
     };
   }
@@ -583,8 +582,7 @@ export function validateHotkey(
     if (!isRightSideModifier(singleMod)) {
       return {
         valid: false,
-        error:
-          "Single modifier hotkeys must use the right-side key (e.g., RightOption). Or use two modifiers (e.g., Control+Alt).",
+        error: "单修饰键快捷键必须使用右侧键位（如 RightOption），或改用双修饰键（如 Control+Alt）。",
         errorCode: "LEFT_MODIFIER_ONLY",
       };
     }
@@ -592,8 +590,7 @@ export function validateHotkey(
     if (platform === "linux") {
       return {
         valid: false,
-        error:
-          "Right-side single modifier hotkeys are not supported on Linux. Use two modifiers (e.g., Control+Alt) instead.",
+        error: "Linux 不支持右侧单修饰键快捷键，请改用双修饰键（如 Control+Alt）。",
         errorCode: "LEFT_MODIFIER_ONLY",
       };
     }
@@ -605,7 +602,7 @@ export function validateHotkey(
   if (normalizedExisting.includes(normalizedHotkey)) {
     return {
       valid: false,
-      error: "That shortcut is already in use.",
+      error: "该快捷键已被占用。",
       errorCode: "DUPLICATE",
     };
   }
@@ -616,7 +613,7 @@ export function validateHotkey(
   if (normalizedReserved.includes(normalizedHotkey)) {
     return {
       valid: false,
-      error: "That shortcut is reserved by your system.",
+      error: "该快捷键是系统保留快捷键。",
       errorCode: "RESERVED",
     };
   }
