@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import {
   Home,
+  BookOpen,
+  Gift,
+  Settings,
+  X,
+} from "lucide-react";
+/*
+// 未来可能重新开放：笔记/上传 Tab + 支持入口 + 用户登录状态展示
+import {
+  Home,
   NotebookPen,
   BookOpen,
   Upload,
@@ -10,10 +19,11 @@ import {
   UserCircle,
   X,
 } from "lucide-react";
+import SupportDropdown from "./ui/SupportDropdown";
+*/
 import logoIcon from "../assets/icon.png";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
-import SupportDropdown from "./ui/SupportDropdown";
 
 export type ControlPanelView = "home" | "personal-notes" | "dictionary" | "upload";
 
@@ -71,9 +81,9 @@ export default function ControlPanelSidebar({
     icon: React.ComponentType<{ size?: number; className?: string }>;
   }[] = [
     { id: "home", label: t("sidebar.home"), icon: Home },
-    { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
-    { id: "upload", label: t("sidebar.upload"), icon: Upload },
+    // { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
     { id: "dictionary", label: t("sidebar.dictionary"), icon: BookOpen },
+    // { id: "upload", label: t("sidebar.upload"), icon: Upload },
   ];
 
   return (
@@ -220,6 +230,8 @@ export default function ControlPanelSidebar({
           </span>
         </button>
 
+        {/* 未来可能重新开放：支持入口 + 登录状态展示（当前保持隐藏） */}
+        {/*
         <SupportDropdown
           trigger={
             <button
@@ -264,6 +276,7 @@ export default function ControlPanelSidebar({
             ) : null}
           </div>
         </div>
+        */}
       </div>
     </div>
   );

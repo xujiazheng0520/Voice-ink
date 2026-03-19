@@ -19,17 +19,20 @@ import {
 import ControlPanelSidebar, { type ControlPanelView } from "./ControlPanelSidebar";
 import WindowControls from "./WindowControls";
 import { getCachedPlatform } from "../utils/platform";
-import { setActiveNoteId, setActiveFolderId } from "../stores/noteStore";
 import HistoryView from "./HistoryView";
+/*
+import { setActiveNoteId, setActiveFolderId } from "../stores/noteStore";
+*/
 
 const platform = getCachedPlatform();
 
 const SettingsModal = React.lazy(() => import("./SettingsModal"));
 const ReferralModal = React.lazy(() => import("./ReferralModal"));
+/*
 const PersonalNotesView = React.lazy(() => import("./notes/PersonalNotesView"));
-const DictionaryView = React.lazy(() => import("./DictionaryView"));
 const UploadAudioView = React.lazy(() => import("./notes/UploadAudioView"));
-
+*/
+const DictionaryView = React.lazy(() => import("./DictionaryView"));
 export default function ControlPanel() {
   const { t } = useTranslation();
   const history = useTranscriptions();
@@ -501,6 +504,14 @@ export default function ControlPanel() {
                 }}
               />
             )}
+            {activeView === "dictionary" && (
+              <Suspense fallback={null}>
+                <DictionaryView />
+              </Suspense>
+            )}
+
+            {/* 未来可能重新开放：上传音频 + 笔记页（当前保持隐藏） */}
+            {/*
             {activeView === "personal-notes" && (
               <Suspense fallback={null}>
                 <PersonalNotesView
@@ -511,11 +522,7 @@ export default function ControlPanel() {
                 />
               </Suspense>
             )}
-            {activeView === "dictionary" && (
-              <Suspense fallback={null}>
-                <DictionaryView />
-              </Suspense>
-            )}
+
             {activeView === "upload" && (
               <Suspense fallback={null}>
                 <UploadAudioView
@@ -531,6 +538,7 @@ export default function ControlPanel() {
                 />
               </Suspense>
             )}
+            */}
           </div>
         </main>
       </div>
