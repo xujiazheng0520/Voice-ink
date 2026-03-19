@@ -362,7 +362,7 @@ export default function ControlPanel() {
           activeView={activeView}
           onViewChange={setActiveView}
           onOpenSettings={() => {
-            setSettingsSection(undefined);
+            setSettingsSection("general");
             setShowSettings(true);
           }}
           onOpenReferrals={() => setShowReferrals(true)}

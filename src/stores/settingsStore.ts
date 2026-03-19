@@ -195,7 +195,7 @@ function invalidateApiKeyCaches(
 }
 
 export const useSettingsStore = create<SettingsState>()((set, get) => ({
-  uiLanguage: normalizeUiLanguage(isBrowser ? localStorage.getItem("uiLanguage") : null),
+  uiLanguage: "zh-CN",
   useLocalWhisper: readBoolean("useLocalWhisper", false),
   whisperModel: readString("whisperModel", "base"),
   localTranscriptionProvider: (readString("localTranscriptionProvider", "whisper") === "nvidia"
@@ -290,8 +290,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     });
   },
 
-  setUiLanguage: (language: string) => {
-    const normalized = normalizeUiLanguage(language);
+  setUiLanguage: (_language: string) => {
+    const normalized = "zh-CN";
     if (isBrowser) localStorage.setItem("uiLanguage", normalized);
     set({ uiLanguage: normalized });
     void i18n.changeLanguage(normalized);
@@ -584,10 +584,9 @@ export async function initializeSettings(): Promise<void> {
       );
     }
 
-    // Sync UI language from main process
+    // Force fixed UI language
     try {
-      const envLanguage = await window.electronAPI.getUiLanguage?.();
-      const resolved = normalizeUiLanguage(envLanguage || state.uiLanguage);
+      const resolved = "zh-CN";
       if (resolved !== state.uiLanguage) {
         if (isBrowser) localStorage.setItem("uiLanguage", resolved);
         useSettingsStore.setState({ uiLanguage: resolved });
@@ -599,7 +598,7 @@ export async function initializeSettings(): Promise<void> {
         { error: (err as Error).message },
         "settings"
       );
-      void i18n.changeLanguage(normalizeUiLanguage(state.uiLanguage));
+      void i18n.changeLanguage("zh-CN");
     }
 
     const migratedLang = isBrowser ? localStorage.getItem("preferredLanguage") : null;
@@ -656,7 +655,7 @@ export async function initializeSettings(): Promise<void> {
     useSettingsStore.setState({ [key]: value });
 
     if (key === "uiLanguage" && typeof value === "string") {
-      void i18n.changeLanguage(value);
+      void i18n.changeLanguage("zh-CN");
     }
   });
 }

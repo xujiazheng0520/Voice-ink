@@ -68,14 +68,17 @@ export default function SettingsModal({ open, onOpenChange, initialSection }: Se
     [t]
   );
 
-  const [activeSection, setActiveSection] = React.useState<SettingsSectionType>("account");
+  const [activeSection, setActiveSection] = React.useState<SettingsSectionType>("general");
 
   // Navigate to initial section when modal opens, resolving legacy aliases
   useEffect(() => {
-    if (open && initialSection) {
+    if (!open) return;
+    if (initialSection) {
       const resolved = (SECTION_ALIASES[initialSection] ?? initialSection) as SettingsSectionType;
       setActiveSection(resolved);
+      return;
     }
+    setActiveSection("general");
   }, [open, initialSection]);
 
   return (

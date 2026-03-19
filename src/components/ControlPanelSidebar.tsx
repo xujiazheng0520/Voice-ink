@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Home,
   BookOpen,
   Gift,
   Settings,
-  X,
 } from "lucide-react";
 /*
 // 未来可能重新开放：笔记/上传 Tab + 支持入口 + 用户登录状态展示
@@ -63,17 +62,8 @@ export default function ControlPanelSidebar({
   updateAction,
 }: ControlPanelSidebarProps) {
   const { t } = useTranslation();
-  const [upgradeDismissed, setUpgradeDismissed] = useState(
-    () => localStorage.getItem("upgradeProDismissed") === "true"
-  );
 
   const showLimitBanner = authLoaded && isSignedIn && !isProUser && isOverLimit;
-  const showUpgradeBanner =
-    !showLimitBanner &&
-    authLoaded &&
-    (!isSignedIn || usageLoaded !== false) &&
-    !isProUser &&
-    !upgradeDismissed;
 
   const navItems: {
     id: ControlPanelView;
@@ -155,38 +145,6 @@ export default function ControlPanelSidebar({
                 className="w-full h-7 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
               >
                 {t("sidebar.upgradeToPro")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showUpgradeBanner && (
-        <div className="px-2 pb-2">
-          <div className="relative rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 p-3">
-            <button
-              onClick={() => {
-                setUpgradeDismissed(true);
-                localStorage.setItem("upgradeProDismissed", "true");
-              }}
-              aria-label={t("common.dismiss")}
-              className="absolute top-1.5 right-1.5 p-0.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            >
-              <X size={12} />
-            </button>
-            <div className="flex flex-col items-center text-center pt-1">
-              <img src={logoIcon} alt="" className="w-7 h-7 rounded-md mb-2" />
-              <p className="text-xs font-medium text-foreground mb-0.5">
-                {t("sidebar.upgradeTitle")}
-              </p>
-              <p className="text-[11px] leading-snug text-muted-foreground mb-2.5">
-                {t("sidebar.upgradeDescription")}
-              </p>
-              <button
-                onClick={onUpgrade}
-                className="w-full h-7 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-              >
-                {t("sidebar.learnMore")}
               </button>
             </div>
           </div>

@@ -2302,6 +2302,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           language,
           mimeType,
           isQwenAsr,
+          apiKey: configuredApiKey,
         };
         if (!isQwenAsr && dictionaryPrompt) {
           proxyData.prompt = dictionaryPrompt;

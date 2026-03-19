@@ -52,7 +52,6 @@ import { getDefaultHotkey, formatHotkeyLabel } from "../utils/hotkeys";
 import { ActivationModeSelector } from "./ui/ActivationModeSelector";
 import { Toggle } from "./ui/toggle";
 import DeveloperSection from "./DeveloperSection";
-import LanguageSelector from "./ui/LanguageSelector";
 import { Skeleton } from "./ui/skeleton";
 import { Progress } from "./ui/progress";
 import { useToast } from "./ui/Toast";
@@ -79,19 +78,6 @@ export type SettingsSectionType =
 interface SettingsPageProps {
   activeSection?: SettingsSectionType;
 }
-
-const UI_LANGUAGE_OPTIONS: import("./ui/LanguageSelector").LanguageOption[] = [
-  { value: "en", label: "English", flag: "🇺🇸" },
-  { value: "es", label: "Español", flag: "🇪🇸" },
-  { value: "fr", label: "Français", flag: "🇫🇷" },
-  { value: "de", label: "Deutsch", flag: "🇩🇪" },
-  { value: "pt", label: "Português", flag: "🇵🇹" },
-  { value: "it", label: "Italiano", flag: "🇮🇹" },
-  { value: "ru", label: "Русский", flag: "🇷🇺" },
-  { value: "ja", label: "日本語", flag: "🇯🇵" },
-  { value: "zh-CN", label: "简体中文", flag: "🇨🇳" },
-  { value: "zh-TW", label: "繁體中文", flag: "🇹🇼" },
-];
 
 function SettingsPanel({
   children,
@@ -639,8 +625,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     whisperModel,
     localTranscriptionProvider,
     parakeetModel,
-    uiLanguage,
-    preferredLanguage,
     cloudTranscriptionProvider,
     cloudTranscriptionModel,
     cloudTranscriptionBaseUrl,
@@ -661,7 +645,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setPreferBuiltInMic,
     setSelectedMicDeviceId,
     setUseLocalWhisper,
-    setUiLanguage,
     setWhisperModel,
     setLocalTranscriptionProvider,
     setParakeetModel,
@@ -1788,42 +1771,6 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                     description={t("settingsPage.general.floatingIcon.autoHideDescription")}
                   >
                     <Toggle checked={floatingIconAutoHide} onChange={setFloatingIconAutoHide} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
-
-            {/* Language */}
-            <div>
-              <SectionHeader
-                title={t("settings.language.sectionTitle")}
-                description={t("settings.language.sectionDescription")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settings.language.uiLabel")}
-                    description={t("settings.language.uiDescription")}
-                  >
-                    <LanguageSelector
-                      value={uiLanguage}
-                      onChange={setUiLanguage}
-                      options={UI_LANGUAGE_OPTIONS}
-                      className="min-w-32"
-                    />
-                  </SettingsRow>
-                </SettingsPanelRow>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settings.language.transcriptionLabel")}
-                    description={t("settings.language.transcriptionDescription")}
-                  >
-                    <LanguageSelector
-                      value={preferredLanguage}
-                      onChange={(value) =>
-                        updateTranscriptionSettings({ preferredLanguage: value })
-                      }
-                    />
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>

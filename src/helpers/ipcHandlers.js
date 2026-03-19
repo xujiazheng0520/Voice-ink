@@ -10,7 +10,6 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
-const arkAnalysisService = require('../services/ArkAnalysisService');
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
@@ -879,12 +878,6 @@ class IPCHandlers {
 
     ipcMain.handle("paste-text", async (event, text, options) => {
       console.log('[log]paste-text文案: ', text);
-      // const analysisText = await arkAnalysisService.analyzeText(text).then(res => {
-      //   console.log('arkAnalysisService.analyzeText: res', res);
-      //   return res.analysis;
-      // });
-      // console.log('analysisText', analysisText);
-      // text = analysisText;
       const rawTargetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
         ? this.textEditMonitor.lastTargetPid
         : null;
@@ -1674,12 +1667,17 @@ class IPCHandlers {
 
     ipcMain.handle(
       "proxy-custom-transcription",
-      async (event, { audioBuffer, endpoint, model, language, prompt, mimeType, isQwenAsr }) => {
+      async (
+        event,
+        { audioBuffer, endpoint, model, language, prompt, mimeType, isQwenAsr, apiKey: providedApiKey }
+      ) => {
         if (!endpoint) {
           throw new Error("Custom transcription endpoint is empty");
         }
 
-        const apiKey = this.environmentManager.getCustomTranscriptionKey();
+        const apiKey =
+          (typeof providedApiKey === "string" ? providedApiKey.trim() : "") ||
+          this.environmentManager.getCustomTranscriptionKey();
         const headers = {};
         if (apiKey) {
           headers.Authorization = `Bearer ${apiKey}`;
@@ -1742,6 +1740,11 @@ class IPCHandlers {
 
         if (!response.ok) {
           const errorText = await response.text();
+          if (response.status === 401 && !apiKey) {
+            throw new Error(
+              `Custom transcription API error: 401 Missing API key. Please configure Custom Transcription API Key in Settings. Raw response: ${errorText}`
+            );
+          }
           throw new Error(`Custom transcription API error: ${response.status} ${errorText}`);
         }
 
