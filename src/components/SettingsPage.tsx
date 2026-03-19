@@ -75,6 +75,13 @@ export type SettingsSectionType =
   | "agentConfig"
   | "prompts";
 
+// General section visibility toggles (hide UI only, keep logic/state intact)
+const SHOW_GENERAL_SOUND_EFFECTS = false;
+const SHOW_GENERAL_MICROPHONE = false;
+const SHOW_GENERAL_AUTO_LEARN_CORRECTIONS = false;
+const SHOW_PRIVACY_DATA_PRIVACY = false;
+const SHOW_PRIVACY_DATA_TROUBLESHOOTING = false;
+
 interface SettingsPageProps {
   activeSection?: SettingsSectionType;
 }
@@ -1723,40 +1730,42 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             </div>
 
             {/* Sound Effects */}
-            <div>
-              <SectionHeader title={t("settingsPage.general.soundEffects.title")} />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsPage.general.soundEffects.dictationSounds")}
-                    description={t("settingsPage.general.soundEffects.dictationSoundsDescription")}
-                  >
-                    <Toggle checked={audioCuesEnabled} onChange={setAudioCuesEnabled} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-                {platform === "win32" && (
+            {SHOW_GENERAL_SOUND_EFFECTS && (
+              <div>
+                <SectionHeader title={t("settingsPage.general.soundEffects.title")} />
+                <SettingsPanel>
                   <SettingsPanelRow>
                     <SettingsRow
-                      label={t("settingsPage.general.soundEffects.muteSystemWhileRecording", {
-                        defaultValue: "Mute speaker playback while recording",
-                      })}
-                      description={t(
-                        "settingsPage.general.soundEffects.muteSystemWhileRecordingDescription",
-                        {
-                          defaultValue:
-                            "Temporarily mute other app sounds during dictation, then restore when recording stops.",
-                        }
-                      )}
+                      label={t("settingsPage.general.soundEffects.dictationSounds")}
+                      description={t("settingsPage.general.soundEffects.dictationSoundsDescription")}
                     >
-                      <Toggle
-                        checked={muteSystemAudioWhileRecording}
-                        onChange={setMuteSystemAudioWhileRecording}
-                      />
+                      <Toggle checked={audioCuesEnabled} onChange={setAudioCuesEnabled} />
                     </SettingsRow>
                   </SettingsPanelRow>
-                )}
-              </SettingsPanel>
-            </div>
+                  {platform === "win32" && (
+                    <SettingsPanelRow>
+                      <SettingsRow
+                        label={t("settingsPage.general.soundEffects.muteSystemWhileRecording", {
+                          defaultValue: "Mute speaker playback while recording",
+                        })}
+                        description={t(
+                          "settingsPage.general.soundEffects.muteSystemWhileRecordingDescription",
+                          {
+                            defaultValue:
+                              "Temporarily mute other app sounds during dictation, then restore when recording stops.",
+                          }
+                        )}
+                      >
+                        <Toggle
+                          checked={muteSystemAudioWhileRecording}
+                          onChange={setMuteSystemAudioWhileRecording}
+                        />
+                      </SettingsRow>
+                    </SettingsPanelRow>
+                  )}
+                </SettingsPanel>
+              </div>
+            )}
 
             {/* Floating Icon */}
             <div>
@@ -1798,39 +1807,41 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
             )}
 
             {/* Microphone */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.general.microphone.title")}
-                description={t("settingsPage.general.microphone.description")}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <MicrophoneSettings
-                    preferBuiltInMic={preferBuiltInMic}
-                    selectedMicDeviceId={selectedMicDeviceId}
-                    onPreferBuiltInChange={setPreferBuiltInMic}
-                    onDeviceSelect={setSelectedMicDeviceId}
-                  />
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
+            {SHOW_GENERAL_MICROPHONE && (
+              <div>
+                <SectionHeader
+                  title={t("settingsPage.general.microphone.title")}
+                  description={t("settingsPage.general.microphone.description")}
+                />
+                <SettingsPanel>
+                  <SettingsPanelRow>
+                    <MicrophoneSettings
+                      preferBuiltInMic={preferBuiltInMic}
+                      selectedMicDeviceId={selectedMicDeviceId}
+                      onPreferBuiltInChange={setPreferBuiltInMic}
+                      onDeviceSelect={setSelectedMicDeviceId}
+                    />
+                  </SettingsPanelRow>
+                </SettingsPanel>
+              </div>
+            )}
 
             {/* Dictionary */}
-            <div>
-              <SectionHeader
-                title={dictionaryAutoLearnCopy.title}
-              />
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={dictionaryAutoLearnCopy.title}
-                    description={dictionaryAutoLearnCopy.description}
-                  >
-                    <Toggle checked={autoLearnCorrections} onChange={setAutoLearnCorrections} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
+            {SHOW_GENERAL_AUTO_LEARN_CORRECTIONS && (
+              <div>
+                <SectionHeader title={dictionaryAutoLearnCopy.title} />
+                <SettingsPanel>
+                  <SettingsPanelRow>
+                    <SettingsRow
+                      label={dictionaryAutoLearnCopy.title}
+                      description={dictionaryAutoLearnCopy.description}
+                    >
+                      <Toggle checked={autoLearnCorrections} onChange={setAutoLearnCorrections} />
+                    </SettingsRow>
+                  </SettingsPanelRow>
+                </SettingsPanel>
+              </div>
+            )}
           </div>
         );
 
@@ -2161,36 +2172,38 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
         return (
           <div className="space-y-6">
             {/* Privacy */}
-            <div>
-              <SectionHeader
-                title={t("settingsPage.privacy.title")}
-                description={t("settingsPage.privacy.description")}
-              />
+            {SHOW_PRIVACY_DATA_PRIVACY && (
+              <div>
+                <SectionHeader
+                  title={t("settingsPage.privacy.title")}
+                  description={t("settingsPage.privacy.description")}
+                />
 
-              {isSignedIn && (
-                <SettingsPanel className="mb-4">
+                {isSignedIn && (
+                  <SettingsPanel className="mb-4">
+                    <SettingsPanelRow>
+                      <SettingsRow
+                        label={t("settingsPage.privacy.cloudBackup")}
+                        description={t("settingsPage.privacy.cloudBackupDescription")}
+                      >
+                        <Toggle checked={cloudBackupEnabled} onChange={setCloudBackupEnabled} />
+                      </SettingsRow>
+                    </SettingsPanelRow>
+                  </SettingsPanel>
+                )}
+
+                <SettingsPanel>
                   <SettingsPanelRow>
                     <SettingsRow
-                      label={t("settingsPage.privacy.cloudBackup")}
-                      description={t("settingsPage.privacy.cloudBackupDescription")}
+                      label={t("settingsPage.privacy.usageAnalytics")}
+                      description={t("settingsPage.privacy.usageAnalyticsDescription")}
                     >
-                      <Toggle checked={cloudBackupEnabled} onChange={setCloudBackupEnabled} />
+                      <Toggle checked={telemetryEnabled} onChange={setTelemetryEnabled} />
                     </SettingsRow>
                   </SettingsPanelRow>
                 </SettingsPanel>
-              )}
-
-              <SettingsPanel>
-                <SettingsPanelRow>
-                  <SettingsRow
-                    label={t("settingsPage.privacy.usageAnalytics")}
-                    description={t("settingsPage.privacy.usageAnalyticsDescription")}
-                  >
-                    <Toggle checked={telemetryEnabled} onChange={setTelemetryEnabled} />
-                  </SettingsRow>
-                </SettingsPanelRow>
-              </SettingsPanel>
-            </div>
+              </div>
+            )}
 
             {/* Permissions */}
             <div className="border-t border-border/40 pt-6">
@@ -2241,7 +2254,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                   />
                 )}
 
-              {platform === "darwin" && (
+              {SHOW_PRIVACY_DATA_TROUBLESHOOTING && platform === "darwin" && (
                 <div className="mt-5">
                   <p className="text-xs font-medium text-foreground mb-3">
                     {t("settingsPage.permissions.troubleshootingTitle")}

@@ -34,38 +34,46 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ open, onOpenChange, initialSection }: SettingsModalProps) {
   const { t } = useTranslation();
+  const isDevMode = import.meta.env.DEV;
   const sidebarItems: SidebarItem<SettingsSectionType>[] = useMemo(
-    () => [
-      {
-        id: "general",
-        label: t("settingsModal.sections.general.label"),
-        icon: Sliders,
-        description: t("settingsModal.sections.general.description"),
-        group: t("settingsModal.groups.app"),
-      },
-      {
-        id: "hotkeys",
-        label: t("settingsModal.sections.hotkeys.label"),
-        icon: Keyboard,
-        description: t("settingsModal.sections.hotkeys.description"),
-        group: t("settingsModal.groups.app"),
-      },
-      {
-        id: "privacyData",
-        label: t("settingsModal.sections.privacyData.label"),
-        icon: Shield,
-        description: t("settingsModal.sections.privacyData.description"),
-        group: t("settingsModal.groups.system"),
-      },
-      {
-        id: "system",
-        label: t("settingsModal.sections.system.label"),
-        icon: Wrench,
-        description: t("settingsModal.sections.system.description"),
-        group: t("settingsModal.groups.system"),
-      },
-    ],
-    [t]
+    () => {
+      const items: SidebarItem<SettingsSectionType>[] = [
+        {
+          id: "general",
+          label: t("settingsModal.sections.general.label"),
+          icon: Sliders,
+          description: t("settingsModal.sections.general.description"),
+          group: t("settingsModal.groups.app"),
+        },
+        {
+          id: "hotkeys",
+          label: t("settingsModal.sections.hotkeys.label"),
+          icon: Keyboard,
+          description: t("settingsModal.sections.hotkeys.description"),
+          group: t("settingsModal.groups.app"),
+        },
+        {
+          id: "privacyData",
+          label: t("settingsModal.sections.privacyData.label"),
+          icon: Shield,
+          description: t("settingsModal.sections.privacyData.description"),
+          group: t("settingsModal.groups.system"),
+        },
+      ];
+
+      if (isDevMode) {
+        items.push({
+          id: "system",
+          label: t("settingsModal.sections.system.label"),
+          icon: Wrench,
+          description: t("settingsModal.sections.system.description"),
+          group: t("settingsModal.groups.system"),
+        });
+      }
+
+      return items;
+    },
+    [t, isDevMode]
   );
 
   const [activeSection, setActiveSection] = React.useState<SettingsSectionType>("general");
@@ -75,11 +83,12 @@ export default function SettingsModal({ open, onOpenChange, initialSection }: Se
     if (!open) return;
     if (initialSection) {
       const resolved = (SECTION_ALIASES[initialSection] ?? initialSection) as SettingsSectionType;
-      setActiveSection(resolved);
+      const canOpenSection = sidebarItems.some((item) => item.id === resolved);
+      setActiveSection(canOpenSection ? resolved : "general");
       return;
     }
     setActiveSection("general");
-  }, [open, initialSection]);
+  }, [open, initialSection, sidebarItems]);
 
   return (
     <SidebarModal<SettingsSectionType>

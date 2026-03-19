@@ -830,7 +830,7 @@
       },
       "privacyData": {
         "description": "隐私、权限与数据分析",
-        "label": "隐私与数据"
+        "label": "权限"
       },
       "system": {
         "description": "更新、存储与开发者工具",
@@ -1145,7 +1145,7 @@
     "permissions": {
       "accessibilityDescription": "转录后自动粘贴需要此权限",
       "accessibilityTitle": "辅助功能",
-      "description": "测试和管理 VoiceInk 正常运行所需的系统权限",
+      "description": "程序正常运行所需的系统权限",
       "microphoneDescription": "语音录制和听写需要此权限",
       "microphoneTitle": "麦克风",
       "resetAccessibility": {
