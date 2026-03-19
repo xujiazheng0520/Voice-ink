@@ -307,6 +307,10 @@
       "noAudio": {
         "title": "Aucun audio détecté",
         "description": "L'enregistrement ne contient pas d'audio détectable. Réessayez."
+      },
+      "pasteCopied": {
+        "title": "Copié dans le presse-papiers",
+        "description": "Le collage automatique n'a pas abouti. Le texte est dans votre presse-papiers. Collez-le manuellement avec Cmd+V ou Ctrl+V."
       }
     },
     "clipboard": {

@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import "./index.css";
-import { X } from "lucide-react";
+import { CircleAlert, X } from "lucide-react";
 import { useToast } from "./components/ui/Toast";
 import { LoadingDots } from "./components/ui/LoadingDots";
+import { Button } from "./components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./components/ui/dialog";
 import { useHotkey } from "./hooks/useHotkey";
 import { useWindowDrag } from "./hooks/useWindowDrag";
 import { useAudioRecording } from "./hooks/useAudioRecording";
@@ -217,17 +226,37 @@ export default function App() {
     };
   }, [toast, dismiss, t]);
 
+  const handleDictationToggle = React.useCallback(() => {
+    setIsCommandMenuOpen(false);
+    setWindowInteractivity(false);
+  }, [setWindowInteractivity]);
+
+  const {
+    isRecording,
+    isProcessing,
+    pasteFallback,
+    clearPasteFallback,
+    toggleListening,
+    cancelRecording,
+    cancelProcessing,
+  } = useAudioRecording(toast, {
+    onToggle: handleDictationToggle,
+    dismiss,
+  });
+
   useEffect(() => {
-    if (isCommandMenuOpen || toastCount > 0) {
+    if (isCommandMenuOpen || toastCount > 0 || pasteFallback?.open) {
       setWindowInteractivity(true);
     } else if (!isHovered) {
       setWindowInteractivity(false);
     }
-  }, [isCommandMenuOpen, isHovered, toastCount, setWindowInteractivity]);
+  }, [isCommandMenuOpen, isHovered, toastCount, pasteFallback?.open, setWindowInteractivity]);
 
   useEffect(() => {
     const resizeWindow = () => {
-      if (isCommandMenuOpen && toastCount > 0) {
+      if (pasteFallback?.open) {
+        window.electronAPI?.resizeMainWindow?.("PASTE_FALLBACK");
+      } else if (isCommandMenuOpen && toastCount > 0) {
         window.electronAPI?.resizeMainWindow?.("EXPANDED");
       } else if (isCommandMenuOpen) {
         window.electronAPI?.resizeMainWindow?.("WITH_MENU");
@@ -238,18 +267,7 @@ export default function App() {
       }
     };
     resizeWindow();
-  }, [isCommandMenuOpen, toastCount]);
-
-  const handleDictationToggle = React.useCallback(() => {
-    setIsCommandMenuOpen(false);
-    setWindowInteractivity(false);
-  }, [setWindowInteractivity]);
-
-  const { isRecording, isProcessing, toggleListening, cancelRecording, cancelProcessing } =
-    useAudioRecording(toast, {
-      onToggle: handleDictationToggle,
-      dismiss,
-    });
+  }, [isCommandMenuOpen, toastCount, pasteFallback?.open]);
 
   // Sync auto-hide from main process — setState directly to avoid IPC echo
   useEffect(() => {
@@ -327,6 +345,16 @@ export default function App() {
   const micState = getMicState();
   const hotkeyLabel = formatHotkeyLabel(hotkey);
 
+  const pasteFallbackTitle =
+    pasteFallback?.mode === "failed"
+      ? t("hooks.clipboard.pasteFailed.title")
+      : t("hooks.audioRecording.pasteCopied.title");
+
+  const pasteFallbackDescription =
+    pasteFallback?.mode === "failed"
+      ? pasteFallback?.message || t("hooks.clipboard.pasteFailed.description")
+      : t("hooks.audioRecording.pasteCopied.description");
+
   const getMicButtonProps = () => {
     const baseClasses =
       "rounded-full w-10 h-10 flex items-center justify-center relative overflow-hidden border-2 border-white/70 cursor-pointer";
@@ -361,6 +389,61 @@ export default function App() {
 
   return (
     <div className="dictation-window">
+      <Dialog open={!!pasteFallback?.open} onOpenChange={(open) => !open && clearPasteFallback()}>
+        <DialogContent
+          overlayClassName="bg-transparent backdrop-blur-0"
+          className="left-auto top-auto right-6 bottom-6 w-[92%] max-w-[760px] translate-x-0 translate-y-0 rounded-2xl border border-white/15 bg-[#171717] px-7 py-6 shadow-2xl"
+        >
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <CircleAlert size={18} className="text-[#6A8DFF]" />
+              <DialogTitle className="text-[30px] font-semibold tracking-[-0.01em] text-white">
+                {pasteFallbackTitle}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-center text-[18px] font-medium text-white/90">
+              {pasteFallbackDescription}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mx-auto w-full max-w-[92%] rounded-xl border border-white/10 bg-black/25 px-5 py-4">
+            <div className="max-h-[220px] overflow-auto whitespace-pre-wrap text-center text-[17px] leading-relaxed text-white/92">
+              {pasteFallback?.text || ""}
+            </div>
+          </div>
+
+          <DialogFooter className="justify-center">
+            <Button
+              variant="secondary"
+              className="h-11 min-w-28 rounded-xl border border-white/15 bg-white/10 px-7 text-[22px] font-semibold text-white hover:bg-white/16"
+              onClick={async () => {
+                const text = pasteFallback?.text || "";
+                if (!text.trim()) {
+                  clearPasteFallback();
+                  return;
+                }
+                try {
+                  await window.electronAPI?.writeClipboard?.(text);
+                } catch {
+                  try {
+                    await navigator.clipboard.writeText(text);
+                  } catch {
+                    // ignore — user can still manually select/copy
+                  }
+                }
+                toast({
+                  title: t("promptStudio.common.copied"),
+                  description: t("controlPanel.history.copiedDescription"),
+                  duration: 2500,
+                });
+              }}
+            >
+              {t("promptStudio.common.copy")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Bottom-right voice button - window expands upward/leftward */}
       <div className="fixed bottom-6 right-6 z-50">
         <div

@@ -307,6 +307,10 @@
       "noAudio": {
         "title": "Kein Audio erkannt",
         "description": "Die Aufnahme enthielt kein erkennbares Audio. Bitte versuchen Sie es erneut."
+      },
+      "pasteCopied": {
+        "title": "In Zwischenablage kopiert",
+        "description": "Automatisches Einfügen wurde nicht abgeschlossen. Der Text befindet sich in Ihrer Zwischenablage. Fügen Sie ihn manuell mit Cmd+V oder Ctrl+V ein."
       }
     },
     "clipboard": {

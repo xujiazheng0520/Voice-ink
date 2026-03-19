@@ -18,6 +18,8 @@ const HTTP_TIMEOUT_ERROR_CODE = "REQUEST_TIMEOUT";
 
 // Debounce delay: wait for user to stop typing before processing corrections
 const AUTO_LEARN_DEBOUNCE_MS = 1500;
+const PASTE_VERIFY_TIMEOUT_MS = 1400;
+const PASTE_VERIFY_POST_DELAY_MS = 220;
 
 const AUDIO_MIME_TYPES = {
   mp3: "audio/mpeg",
@@ -409,6 +411,104 @@ class IPCHandlers {
     }
   }
 
+  _normalizePasteText(value) {
+    return String(value || "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  _isLikelyPastedText(expectedText, actualFieldValue) {
+    const expected = this._normalizePasteText(expectedText);
+    const actual = this._normalizePasteText(actualFieldValue);
+    if (!expected || !actual) return false;
+    if (actual.includes(expected)) return true;
+
+    // Fallback: some editors normalize punctuation/newlines. Use a short anchor match.
+    if (expected.length >= 24) {
+      const head = expected.slice(0, 16);
+      const tail = expected.slice(-8);
+      return actual.includes(head) && actual.includes(tail);
+    }
+    return false;
+  }
+
+  _verifyPasteApplied(text, targetPid) {
+    if (!this.textEditMonitor || !text?.trim()) {
+      return Promise.resolve(null);
+    }
+
+    const pid = Number.isInteger(targetPid) ? targetPid : null;
+    if (process.platform === "darwin" && !pid) {
+      return Promise.resolve(null);
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      let timeoutId = null;
+
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        this.textEditMonitor.removeListener("text-edited", onEdited);
+        try {
+          this.textEditMonitor.stopMonitoring();
+        } catch {}
+        resolve(value);
+      };
+
+      const onEdited = (data) => {
+        const newFieldValue = data?.newFieldValue;
+        if (typeof newFieldValue !== "string") return;
+        if (this._isLikelyPastedText(text, newFieldValue)) {
+          finish(true);
+        }
+      };
+
+      this.textEditMonitor.on("text-edited", onEdited);
+
+      // Timeout means "unable to confirm" instead of "confirmed failure".
+      timeoutId = setTimeout(() => finish(null), PASTE_VERIFY_TIMEOUT_MS);
+
+      try {
+        this.textEditMonitor.startMonitoring(text, PASTE_VERIFY_TIMEOUT_MS, { targetPid: pid });
+      } catch (error) {
+        debugLogger.debug("[PASTE_VERIFY] Failed to start monitor", { error: error?.message || String(error) });
+        finish(null);
+      }
+    });
+  }
+
+  async _captureMacValueSnapshot(targetPid) {
+    if (process.platform !== "darwin") return null;
+    if (!Number.isInteger(targetPid) || targetPid <= 0) return null;
+    if (!this.textEditMonitor || typeof this.textEditMonitor._queryMacOSValue !== "function") return null;
+
+    try {
+      return await this.textEditMonitor._queryMacOSValue(targetPid);
+    } catch {
+      return null;
+    }
+  }
+
+  async _verifyPasteAppliedWithSnapshot(text, targetPid, preValue) {
+    const monitorVerified = await this._verifyPasteApplied(text, targetPid);
+    if (monitorVerified === true) return true;
+    if (monitorVerified === false) return false;
+
+    // macOS fallback: direct AX snapshot check pre/post paste.
+    if (process.platform === "darwin") {
+      await new Promise((resolve) => setTimeout(resolve, PASTE_VERIFY_POST_DELAY_MS));
+      const postValue = await this._captureMacValueSnapshot(targetPid);
+      if (postValue === null) return null;
+      if (this._isLikelyPastedText(text, postValue)) return true;
+      if (typeof preValue === "string" && postValue === preValue) return false;
+      return null;
+    }
+
+    return null;
+  }
+
   setupHandlers() {
     ipcMain.handle("window-minimize", () => {
       if (this.windowManager.controlPanelWindow) {
@@ -785,9 +885,15 @@ class IPCHandlers {
       // });
       // console.log('analysisText', analysisText);
       // text = analysisText;
-      const targetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
+      const rawTargetPid = Number.isInteger(this.textEditMonitor?.lastTargetPid)
         ? this.textEditMonitor.lastTargetPid
         : null;
+      // Guard against stale/self PID captures (can happen if overlay had focus).
+      const targetPid =
+        Number.isInteger(rawTargetPid) && rawTargetPid > 0 && rawTargetPid !== process.pid
+          ? rawTargetPid
+          : null;
+      const preValueSnapshot = await this._captureMacValueSnapshot(targetPid);
 
       // If the floating dictation panel currently has focus, dismiss it so the
       // paste keystroke lands in the user's target app instead of the overlay.
@@ -809,6 +915,49 @@ class IPCHandlers {
         webContents: event.sender,
         targetPid,
       });
+
+      // Verify paste as best-effort.
+      // Downgrade only when we have explicit negative evidence.
+      if (result?.mode === "pasted") {
+        const verified = await this._verifyPasteAppliedWithSnapshot(
+          text,
+          targetPid,
+          preValueSnapshot
+        );
+        if (verified === false) {
+          await this.clipboardManager.writeClipboard(text, event.sender).catch(() => {});
+          result.success = false;
+          result.mode = "copied";
+          result.reason = "paste_verification_failed";
+          result.message =
+            "Automatic paste could not be confirmed. Text has been copied to clipboard; paste manually with Cmd+V or Ctrl+V.";
+          debugLogger.info(
+            "[PASTE_PROTOCOL] Downgraded pasted -> copied (verification failed)",
+            {
+              verified,
+              reason: result.reason,
+              targetPid,
+              rawTargetPid,
+              preValueSnapshot: typeof preValueSnapshot === "string" ? preValueSnapshot.slice(0, 120) : null,
+              platform: process.platform,
+            },
+            "clipboard"
+          );
+        } else if (verified === null) {
+          debugLogger.debug(
+            "[PASTE_PROTOCOL] Paste verification unavailable; preserving pasted result",
+            {
+              targetPid,
+              rawTargetPid,
+              preValueSnapshot:
+                typeof preValueSnapshot === "string" ? preValueSnapshot.slice(0, 120) : null,
+              platform: process.platform,
+            },
+            "clipboard"
+          );
+        }
+      }
+
       debugLogger.info(
         "[PASTE_PROTOCOL] paste-text result",
         {

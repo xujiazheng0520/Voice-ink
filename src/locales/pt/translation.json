@@ -279,6 +279,10 @@
       "noAudio": {
         "title": "Nenhum áudio detectado",
         "description": "A gravação não contém áudio detectável. Tente novamente."
+      },
+      "pasteCopied": {
+        "title": "Copiado para a área de transferência",
+        "description": "A colagem automática não foi concluída. O texto está na sua área de transferência. Cole manualmente com Cmd+V ou Ctrl+V."
       }
     },
     "clipboard": {

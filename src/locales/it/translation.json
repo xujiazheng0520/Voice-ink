@@ -307,6 +307,10 @@
       "noAudio": {
         "title": "Nessun audio rilevato",
         "description": "La registrazione non contiene audio rilevabile. Riprova."
+      },
+      "pasteCopied": {
+        "title": "Copiato negli appunti",
+        "description": "L'incolla automatico non è stato completato. Il testo è negli appunti. Incollalo manualmente con Cmd+V o Ctrl+V."
       }
     },
     "clipboard": {

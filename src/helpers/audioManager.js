@@ -1125,10 +1125,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const timingData = {
         mode: useLocalWhisper ? `local-${localProvider}` : "cloud",
         model: activeModel,
+        // 音频素材本身的时长（媒体元数据，非处理耗时）
         audioDurationMs: metadata.durationSeconds
           ? Math.round(metadata.durationSeconds * 1000)
           : null,
+        // 文本后处理（cleanup/reasoning）耗时，由下游处理阶段上报
         reasoningProcessingDurationMs: result?.timings?.reasoningProcessingDurationMs ?? null,
+        // 端到端总耗时：从 pipelineStart 到当前完成点（包含转码/转录/后处理等）
         roundTripDurationMs,
         audioSizeBytes: audioBlob.size,
         audioFormat: audioBlob.type,
@@ -1136,8 +1139,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       };
 
       if (useLocalWhisper) {
+        // 本地模式额外统计：音频格式转换耗时（如 wav 转换）
         timingData.audioConversionDurationMs = result?.timings?.audioConversionDurationMs ?? null;
       }
+      // 语音转文本核心阶段耗时（不含后处理）
       timingData.transcriptionProcessingDurationMs =
         result?.timings?.transcriptionProcessingDurationMs ?? null;
 

@@ -307,6 +307,10 @@
       "noAudio": {
         "title": "No se detectó audio",
         "description": "La grabación no contiene audio detectable. Inténtalo de nuevo."
+      },
+      "pasteCopied": {
+        "title": "Copiado al portapapeles",
+        "description": "No se pudo completar el pegado automático. El texto está en tu portapapeles. Pégalo manualmente con Cmd+V o Ctrl+V."
       }
     },
     "clipboard": {

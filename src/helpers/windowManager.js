@@ -99,14 +99,46 @@ class WindowManager {
       return { success: false, message: "Window not available" };
     }
 
-    const newSize = WINDOW_SIZES[sizeKey] || WINDOW_SIZES.BASE;
     const currentBounds = this.mainWindow.getBounds();
-
     const bottomRightX = currentBounds.x + currentBounds.width;
     const bottomRightY = currentBounds.y + currentBounds.height;
-
     const display = screen.getDisplayNearestPoint({ x: bottomRightX, y: bottomRightY });
     const workArea = display.workArea || display.bounds;
+
+    if (sizeKey === "PASTE_FALLBACK") {
+      const width = Math.max(420, Math.round(workArea.width * 0.4));
+      // Keep enough height so overlay/content never gets clipped by the host window.
+      const height = Math.max(360, Math.round(workArea.height * 0.46));
+
+      const centeredX = workArea.x + Math.round((workArea.width - width) / 2);
+      const bottomOffset = Math.round(workArea.height * 0.1);
+      const bottomAnchoredY = workArea.y + workArea.height - height - bottomOffset;
+
+      const newX = Math.max(workArea.x, Math.min(centeredX, workArea.x + workArea.width - width));
+      const newY = Math.max(
+        workArea.y,
+        Math.min(bottomAnchoredY, workArea.y + workArea.height - height)
+      );
+
+      this.mainWindow.setBounds({
+        x: newX,
+        y: newY,
+        width,
+        height,
+      });
+
+      return { success: true, bounds: { x: newX, y: newY, width, height } };
+    }
+
+    const newSize = WINDOW_SIZES[sizeKey] || WINDOW_SIZES.BASE;
+
+    // Ensure the floating recorder button always returns to the canonical
+    // bottom-right docked position after temporary expanded states.
+    if (sizeKey === "BASE") {
+      const basePos = WindowPositionUtil.getMainWindowPosition(display, newSize);
+      this.mainWindow.setBounds(basePos);
+      return { success: true, bounds: basePos };
+    }
 
     let newX = bottomRightX - newSize.width;
     let newY = bottomRightY - newSize.height;
