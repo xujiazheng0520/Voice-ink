@@ -17,8 +17,9 @@ const HTTP_TIMEOUT_ERROR_CODE = "REQUEST_TIMEOUT";
 
 // Debounce delay: wait for user to stop typing before processing corrections
 const AUTO_LEARN_DEBOUNCE_MS = 1500;
-const PASTE_VERIFY_TIMEOUT_MS = 1400;
-const PASTE_VERIFY_POST_DELAY_MS = 220;
+// Keep verification quick so fallback dialog appears sooner when auto-paste fails.
+const PASTE_VERIFY_TIMEOUT_MS = 650;
+const PASTE_VERIFY_POST_DELAY_MS = 90;
 
 const AUDIO_MIME_TYPES = {
   mp3: "audio/mpeg",
