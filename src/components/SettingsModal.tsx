@@ -37,20 +37,6 @@ export default function SettingsModal({ open, onOpenChange, initialSection }: Se
   const sidebarItems: SidebarItem<SettingsSectionType>[] = useMemo(
     () => [
       {
-        id: "account",
-        label: t("settingsModal.sections.account.label"),
-        icon: UserCircle,
-        description: t("settingsModal.sections.account.description"),
-        group: t("settingsModal.groups.account"),
-      },
-      {
-        id: "plansBilling",
-        label: t("settingsModal.sections.plansBilling.label"),
-        icon: CreditCard,
-        description: t("settingsModal.sections.plansBilling.description"),
-        group: t("settingsModal.groups.account"),
-      },
-      {
         id: "general",
         label: t("settingsModal.sections.general.label"),
         icon: Sliders,
@@ -63,20 +49,6 @@ export default function SettingsModal({ open, onOpenChange, initialSection }: Se
         icon: Keyboard,
         description: t("settingsModal.sections.hotkeys.description"),
         group: t("settingsModal.groups.app"),
-      },
-      {
-        id: "transcription",
-        label: t("settingsModal.sections.transcription.label"),
-        icon: Mic,
-        description: t("settingsModal.sections.transcription.description"),
-        group: t("settingsModal.groups.speechAi"),
-      },
-      {
-        id: "intelligence",
-        label: t("settingsModal.sections.intelligence.label"),
-        icon: Brain,
-        description: t("settingsModal.sections.intelligence.description"),
-        group: t("settingsModal.groups.speechAi"),
       },
       {
         id: "privacyData",

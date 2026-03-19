@@ -7,6 +7,7 @@ import { isSecureEndpoint } from "../utils/urlUtils";
 import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo, DEFAULT_STRICT_OVERLAP_THRESHOLD } from "../utils/contextClassifier";
+import transcriptionConfig from "../../config/transcriptionConfig";
 import {
   getSettings,
   getEffectiveReasoningModel,
@@ -2178,9 +2179,12 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         typeof durationSeconds === "number" &&
         durationSeconds > 0 &&
         durationSeconds < SHORT_CLIP_DURATION_SECONDS;
+      // [TIP]: 目前使用内置配置，当前配置为千问模型，后续需要根据实际情况进行调整
 
-      const model = this.getTranscriptionModel();
-      const provider = apiSettings.cloudTranscriptionProvider || "openai";
+      // Force cloud transcription through Qwen (DashScope OpenAI-compatible endpoint).
+      // Swap providers later by changing config/transcriptionConfig.js only.
+      const provider = "custom";
+      const model = (transcriptionConfig?.model || "").trim() || "qwen3-asr-flash";
 
       logger.debug(
         "Transcription request starting",
@@ -2211,8 +2215,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "transcription"
       );
 
-      const [apiKey, optimizedAudio] = await Promise.all([
-        this.getAPIKey(),
+      const configuredApiKey = (transcriptionConfig?.apiKey || "").trim();
+      const [optimizedAudio] = await Promise.all([
         shouldOptimize ? this.optimizeAudio(audioBlob) : Promise.resolve(audioBlob),
       ]);
 
@@ -2233,7 +2237,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       // Add custom dictionary as prompt hint for cloud transcription
       const dictionaryPrompt = this.getCustomDictionaryPrompt();
       const shouldStream = this.shouldStreamTranscription(model, provider);
-      const endpoint = this.getTranscriptionEndpoint();
+      const endpoint = (transcriptionConfig?.baseUrl || "").trim();
       const isCustomProvider = provider === "custom";
       const isQwenAsr = isCustomProvider && isQwenAsrModel(model);
       const isCustomEndpoint =
@@ -2334,16 +2338,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           isQwenAsr,
           requestTimeoutMs,
           isCustomEndpoint,
-          hasApiKey: !!apiKey,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : "(none)",
+          hasApiKey: !!configuredApiKey,
+          apiKeyPreview: configuredApiKey ? `${configuredApiKey.substring(0, 8)}...` : "(none)",
         },
         "transcription"
       );
 
       // Build headers - only include Authorization if we have an API key
       const headers = {};
-      if (apiKey) {
-        headers.Authorization = `Bearer ${apiKey}`;
+      if (configuredApiKey) {
+        headers.Authorization = `Bearer ${configuredApiKey}`;
       }
 
       let requestEndpoint = endpoint;
@@ -2380,7 +2384,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           {
             endpoint: requestEndpoint,
             method: "POST",
-            hasAuthHeader: !!apiKey,
+            hasAuthHeader: !!configuredApiKey,
             payloadType: "chat-completions-input-audio",
             dictionaryIgnoredForQwen: !!dictionaryPrompt,
             dictionaryTermsCount: dictionaryPrompt
@@ -2422,7 +2426,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           {
             endpoint: requestEndpoint,
             method: "POST",
-            hasAuthHeader: !!apiKey,
+            hasAuthHeader: !!configuredApiKey,
             formDataFields: [
               "file",
               "model",

@@ -218,3 +218,7 @@ npm run build
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## 注意事项
+
+* 关键节点的提示搜索关键字：`[TIP]`
