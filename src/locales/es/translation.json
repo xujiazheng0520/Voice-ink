@@ -1087,6 +1087,8 @@
       "startup": {
         "launchAtLogin": "Abrir al iniciar sesión",
         "launchAtLoginDescription": "Inicia VoiceInk automáticamente al iniciar sesión",
+        "smartMode": "Modo inteligente",
+        "smartModeDescription": "Al activarlo, el texto de voz se optimiza con IA antes de salir.",
         "title": "Inicio"
       },
       "updates": {

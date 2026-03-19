@@ -61,6 +61,7 @@ const BOOLEAN_SETTINGS = new Set([
   "allowLocalFallback",
   "assemblyAiStreaming",
   "useReasoningModel",
+  "smartModeEnabled",
   "preferBuiltInMic",
   "muteSystemAudioWhileRecording",
   "cloudBackupEnabled",
@@ -115,6 +116,7 @@ export interface SettingsState
   setCustomDictionary: (words: string[]) => void;
   setAssemblyAiStreaming: (value: boolean) => void;
   setUseReasoningModel: (value: boolean) => void;
+  setSmartModeEnabled: (value: boolean) => void;
   setReasoningModel: (value: string) => void;
   setReasoningProvider: (value: string) => void;
   setUiLanguage: (language: string) => void;
@@ -222,6 +224,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   assemblyAiStreaming: readBoolean("assemblyAiStreaming", true),
 
   useReasoningModel: readBoolean("useReasoningModel", true),
+  smartModeEnabled: readBoolean("smartModeEnabled", false),
   reasoningModel: readString("reasoningModel", ""),
   reasoningProvider: readString("reasoningProvider", "openai"),
 
@@ -275,6 +278,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setCloudReasoningBaseUrl: createStringSetter("cloudReasoningBaseUrl"),
   setAssemblyAiStreaming: createBooleanSetter("assemblyAiStreaming"),
   setUseReasoningModel: createBooleanSetter("useReasoningModel"),
+  setSmartModeEnabled: createBooleanSetter("smartModeEnabled"),
   setReasoningModel: createStringSetter("reasoningModel"),
   setReasoningProvider: createStringSetter("reasoningProvider"),
 
@@ -428,6 +432,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const s = useSettingsStore.getState();
     if (settings.useReasoningModel !== undefined)
       s.setUseReasoningModel(settings.useReasoningModel);
+    if (settings.smartModeEnabled !== undefined) s.setSmartModeEnabled(settings.smartModeEnabled);
     if (settings.reasoningModel !== undefined) s.setReasoningModel(settings.reasoningModel);
     if (settings.reasoningProvider !== undefined)
       s.setReasoningProvider(settings.reasoningProvider);

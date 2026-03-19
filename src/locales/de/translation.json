@@ -1083,6 +1083,8 @@
       "startup": {
         "launchAtLogin": "Beim Anmelden starten",
         "launchAtLoginDescription": "VoiceInk automatisch starten, wenn Sie sich anmelden",
+        "smartMode": "Intelligenter Modus",
+        "smartModeDescription": "Wenn aktiviert, wird der diktierte Text vor der Ausgabe durch KI optimiert.",
         "title": "Autostart"
       },
       "updates": {

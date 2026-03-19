@@ -1087,6 +1087,8 @@
       "startup": {
         "launchAtLogin": "Запускать при входе",
         "launchAtLoginDescription": "Автоматически запускать VoiceInk при входе в систему",
+        "smartMode": "Умный режим",
+        "smartModeDescription": "После включения текст с диктовки будет оптимизирован ИИ перед выводом.",
         "title": "Автозапуск"
       },
       "updates": {

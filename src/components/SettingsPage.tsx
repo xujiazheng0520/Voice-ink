@@ -637,6 +637,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     cloudTranscriptionBaseUrl,
     cloudReasoningBaseUrl,
     useReasoningModel,
+    smartModeEnabled,
     reasoningModel,
     reasoningProvider,
     openaiApiKey,
@@ -660,6 +661,7 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setCloudTranscriptionBaseUrl,
     setCloudReasoningBaseUrl,
     setUseReasoningModel,
+    setSmartModeEnabled,
     setReasoningModel,
     setReasoningProvider,
     setOpenaiApiKey,
@@ -1800,6 +1802,14 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                         onChange={(checked: boolean) => handleAutoStartChange(checked)}
                         disabled={autoStartLoading}
                       />
+                    </SettingsRow>
+                  </SettingsPanelRow>
+                  <SettingsPanelRow>
+                    <SettingsRow
+                      label={t("settingsPage.general.startup.smartMode")}
+                      description={t("settingsPage.general.startup.smartModeDescription")}
+                    >
+                      <Toggle checked={smartModeEnabled} onChange={setSmartModeEnabled} />
                     </SettingsRow>
                   </SettingsPanelRow>
                 </SettingsPanel>

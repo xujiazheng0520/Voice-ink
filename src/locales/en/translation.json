@@ -1083,6 +1083,8 @@
       "startup": {
         "launchAtLogin": "Launch at login",
         "launchAtLoginDescription": "Start VoiceInk automatically when you log in",
+        "smartMode": "Smart Mode",
+        "smartModeDescription": "When enabled, dictated text is optimized by AI before output.",
         "title": "Startup"
       },
       "updates": {

@@ -1059,6 +1059,8 @@
       "startup": {
         "launchAtLogin": "Iniciar ao fazer login",
         "launchAtLoginDescription": "Iniciar o VoiceInk automaticamente ao fazer login",
+        "smartMode": "Modo inteligente",
+        "smartModeDescription": "Quando ativado, o texto ditado e otimizado por IA antes da saida.",
         "title": "Inicialização"
       },
       "updates": {

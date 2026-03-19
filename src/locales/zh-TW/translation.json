@@ -1083,6 +1083,8 @@
       "startup": {
         "launchAtLogin": "登入時啟動",
         "launchAtLoginDescription": "登入時自動啟動 VoiceInk",
+        "smartMode": "智能模式",
+        "smartModeDescription": "開啟後語音輸入的文字會先經過 AI 智能優化再輸出。",
         "title": "啟動"
       },
       "updates": {

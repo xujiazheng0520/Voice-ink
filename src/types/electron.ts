@@ -576,6 +576,10 @@ declare global {
         agentName: string | null,
         config: any
       ) => Promise<{ success: boolean; text?: string; error?: string }>;
+      processArkAnalysis?: (
+        text: string,
+        analysisPrompt?: string
+      ) => Promise<{ success: boolean; text?: string; error?: string }>;
 
       // llama.cpp management
       llamaCppCheck: () => Promise<{ isInstalled: boolean; version?: string }>;

@@ -10,6 +10,7 @@ const GnomeShortcutManager = require("./gnomeShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
+const arkAnalysisService = require("../services/ArkAnalysisService");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 const HTTP_REQUEST_TIMEOUT_MS = 120000;
@@ -1936,6 +1937,19 @@ class IPCHandlers {
         }
       }
     );
+
+    ipcMain.handle("process-ark-analysis", async (_event, text, analysisPrompt) => {
+      try {
+        const result = await arkAnalysisService.analyzeText(text, analysisPrompt);
+        if (!result?.success) {
+          return { success: false, error: result?.error || "Ark analysis failed" };
+        }
+        return { success: true, text: result.analysis };
+      } catch (error) {
+        debugLogger.error("Ark analysis error:", { error: error?.message || String(error) });
+        return { success: false, error: error?.message || "Ark analysis failed" };
+      }
+    });
 
     ipcMain.handle("check-local-reasoning-available", async () => {
       try {

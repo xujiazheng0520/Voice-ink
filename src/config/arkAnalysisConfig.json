@@ -1,0 +1,5 @@
+{
+  "baseUrl": "https://ark.cn-beijing.volces.com/api/coding/v3",
+  "model": "minimax-m2.5",
+  "apiKeyEnvVar": "ARK_API_KEY"
+}

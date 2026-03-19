@@ -8,6 +8,7 @@ import { withSessionRefresh } from "../lib/neonAuth";
 import { getBaseLanguageCode, validateLanguageForModel } from "../utils/languageSupport";
 import { classifyContext, getTargetAppInfo, DEFAULT_STRICT_OVERLAP_THRESHOLD } from "../utils/contextClassifier";
 import transcriptionConfig from "../../config/transcriptionConfig";
+import arkAnalysisConfig from "../config/arkAnalysisConfig.json";
 import {
   getSettings,
   getEffectiveReasoningModel,
@@ -1093,9 +1094,31 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         activeModel = "openwhispr-cloud";
         result = await this.processWithOpenWhisprCloud(audioBlob, metadata);
       } else {
-        activeModel = this.getTranscriptionModel();
+        // [TIP]: 实际系统调用的是openai的api，而不是openai-fallback
         result = await this.processWithOpenAIAPI(audioBlob, metadata);
+        logger.info('processWithOpenAIAPI.result', result);
+
+        if (result?.success && typeof result.text === "string" && result.text.trim()) {
+          const reasoningStart = performance.now();
+          const smartModeEnabled = await this.isReasoningAvailable();
+          logger.info('processTranscription.start', result.text);
+          const processedText = await this.processTranscription(result.text, "openai");
+          const reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
+          if (smartModeEnabled) {
+            activeModel = `ark:${arkAnalysisConfig.model}`;
+          }
+          result = {
+            ...result,
+            text: processedText,
+            source: smartModeEnabled ? "openai-reasoned" : "openai",
+            timings: {
+              ...(result.timings || {}),
+              reasoningProcessingDurationMs,
+            },
+          };
+        }
       }
+
 
       if (!this.isProcessing) {
         return;
@@ -1123,7 +1146,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const roundTripDurationMs = Math.round(performance.now() - pipelineStart);
 
       const timingData = {
-        mode: useLocalWhisper ? `local-${localProvider}` : "cloud",
+        mode: "cloud",
         model: activeModel,
         // 音频素材本身的时长（媒体元数据，非处理耗时）
         audioDurationMs: metadata.durationSeconds
@@ -1639,7 +1662,27 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const startTime = Date.now();
 
     try {
-      const result = await ReasoningService.processText(text, model, agentName, config);
+      const settings = getSettings();
+      const systemPrompt =
+        config?.systemPrompt ||
+        getSystemPrompt(
+          agentName || "",
+          settings.customDictionary,
+          settings.preferredLanguage || "auto",
+          text,
+          settings.uiLanguage || "zh-CN",
+          config?.contextClassification || undefined
+        );
+      const customPrompt = this.getCustomPrompt();
+      const finalPrompt = customPrompt
+        ? `${systemPrompt}\n\n${customPrompt}`.trim()
+        : systemPrompt;
+      logger.info("processArkAnalysis.params", finalPrompt, text);
+      const arkResult = await window.electronAPI?.processArkAnalysis?.(text, finalPrompt);
+      if (!arkResult?.success || !arkResult?.text) {
+        throw new Error(arkResult?.error || "Ark reasoning returned empty result");
+      }
+      const result = arkResult.text;
 
       const processingTime = Date.now() - startTime;
 
@@ -1670,7 +1713,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    const useReasoning = getSettings().useReasoningModel;
+    const useReasoning = getSettings().smartModeEnabled;
     const now = Date.now();
     const cacheValid =
       this.reasoningAvailabilityCache &&
@@ -1763,14 +1806,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       typeof window !== "undefined" && window.localStorage
         ? localStorage.getItem("agentName") || null
         : null;
-    if (!reasoningModel && !isCloud) {
-      logger.logReasoning("REASONING_SKIPPED", {
-        reason: "No reasoning model selected",
-      });
-      return cleanedText;
-    }
+    // if (!reasoningModel && !isCloud) {
+    //   logger.logReasoning("REASONING_SKIPPED", {
+    //     reason: "No reasoning model selected",
+    //   });
+    //   return cleanedText;
+    // }
 
+
+    // [TIP]: 语音文字智能提升开关是否开启
     const useReasoning = await this.isReasoningAvailable();
+
+    logger.info("useReasoning", useReasoning);
 
     logger.logReasoning("REASONING_CHECK", {
       useReasoning,
@@ -2220,7 +2267,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "transcription"
       );
 
-      const configuredApiKey = (transcriptionConfig?.apiKey || "").trim();
+      let configuredApiKey = (transcriptionConfig?.apiKey || "").trim();
+      if (!configuredApiKey && provider === "custom") {
+        try {
+          configuredApiKey = (await this.getApiKey("custom"))?.trim() || "";
+        } catch {
+          configuredApiKey = "";
+        }
+      }
       const [optimizedAudio] = await Promise.all([
         shouldOptimize ? this.optimizeAudio(audioBlob) : Promise.resolve(audioBlob),
       ]);
@@ -2546,23 +2600,18 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
         timings.transcriptionProcessingDurationMs = Math.round(performance.now() - apiCallStart);
 
-        const reasoningStart = performance.now();
-        const text = await this.processTranscription(transcribedText, "openai");
-        timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
-
-        const source = (await this.isReasoningAvailable()) ? "openai-reasoned" : "openai";
         logger.debug(
           "Transcription successful",
           {
             originalLength: transcribedText.length,
-            processedLength: text.length,
-            source,
+            processedLength: transcribedText.length,
+            source: "openai",
             transcriptionProcessingDurationMs: timings.transcriptionProcessingDurationMs,
-            reasoningProcessingDurationMs: timings.reasoningProcessingDurationMs,
           },
           "transcription"
         );
-        return { success: true, text, source, timings };
+        logger.info("processTranscription.result", transcribedText);
+        return { success: true, text: transcribedText, source: "openai", timings };
       } else {
         // Log at info level so it shows without debug mode
         logger.info(

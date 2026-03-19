@@ -1083,6 +1083,8 @@
       "startup": {
         "launchAtLogin": "ログイン時に起動",
         "launchAtLoginDescription": "ログイン時に VoiceInk を自動的に起動",
+        "smartMode": "スマートモード",
+        "smartModeDescription": "有効にすると、音声入力テキストは出力前にAIで最適化されます。",
         "title": "起動設定"
       },
       "updates": {

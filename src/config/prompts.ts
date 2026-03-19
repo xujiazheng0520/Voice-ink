@@ -21,17 +21,6 @@ function getPromptBundle(uiLanguage?: string): PromptBundle {
   };
 }
 
-function detectAgentName(transcript: string, agentName: string): boolean {
-  const lower = transcript.toLowerCase();
-  const name = agentName.toLowerCase();
-
-  if (lower.includes(name)) return true;
-
-  const variants: string[] = [];
-
-  return variants.some((v) => lower.includes(v));
-}
-
 function getContextInstruction(context?: ContextClassification): string {
   if (!context) return "";
 
@@ -85,7 +74,7 @@ export function getSystemPrompt(
   agentName: string | null,
   customDictionary?: string[],
   language?: string,
-  transcript?: string,
+  _transcript?: string,
   uiLanguage?: string,
   context?: ContextClassification
 ): string {
@@ -108,15 +97,8 @@ export function getSystemPrompt(
   if (promptTemplate) {
     prompt = promptTemplate.replace(/\{\{agentName\}\}/g, name);
   } else {
-    const agentModeEnabled =
-      typeof window !== "undefined" &&
-      !!window.localStorage &&
-      window.localStorage.getItem("reasoningEnableAgentMode") === "true";
-    const useFullPrompt = agentModeEnabled && !!transcript && detectAgentName(transcript, name);
-    prompt = (useFullPrompt ? prompts.fullPrompt : prompts.cleanupPrompt).replace(
-      /\{\{agentName\}\}/g,
-      name
-    );
+    // Product decision: only cleanup mode (no agent/FULL prompt switching).
+    prompt = prompts.cleanupPrompt.replace(/\{\{agentName\}\}/g, name);
   }
 
   const langInstruction = getLanguageInstruction(language);

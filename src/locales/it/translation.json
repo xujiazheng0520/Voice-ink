@@ -1087,6 +1087,8 @@
       "startup": {
         "launchAtLogin": "Avvia all'accesso",
         "launchAtLoginDescription": "Avvia VoiceInk automaticamente all'accesso",
+        "smartMode": "Modalita intelligente",
+        "smartModeDescription": "Se attivata, il testo dettato viene ottimizzato dall'IA prima dell'output.",
         "title": "Avvio"
       },
       "updates": {

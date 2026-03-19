@@ -322,6 +322,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Anthropic reasoning
   processAnthropicReasoning: (text, modelId, agentName, config) =>
     ipcRenderer.invoke("process-anthropic-reasoning", text, modelId, agentName, config),
+  processArkAnalysis: (text, analysisPrompt) =>
+    ipcRenderer.invoke("process-ark-analysis", text, analysisPrompt),
 
   // llama.cpp
   llamaCppCheck: () => ipcRenderer.invoke("llama-cpp-check"),

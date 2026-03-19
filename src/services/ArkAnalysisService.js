@@ -4,9 +4,12 @@
  * 维护大模型分析能力，返回大模型给出的答案
  * 直接实现 Ark API 调用，不依赖其他服务
  */
+const arkAnalysisConfig = require("../config/arkAnalysisConfig.json");
+
 class ArkAnalysisService {
-  static ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/coding/v3";
-  static ARK_MODEL = "minimax-m2.5";
+  static ARK_BASE_URL = arkAnalysisConfig.baseUrl;
+  static ARK_MODEL = arkAnalysisConfig.model;
+  static ARK_API_KEY_ENV_VAR = arkAnalysisConfig.apiKeyEnvVar || "ARK_API_KEY";
 
   /**
    * 分析文案 - 调用大模型进行深度分析
@@ -30,13 +33,13 @@ class ArkAnalysisService {
     }
 
     // 从参数或环境变量获取 API 密钥
-    const arkApiKey = apiKey || process.env.ARK_API_KEY || "";
+    const arkApiKey = apiKey || process.env[ArkAnalysisService.ARK_API_KEY_ENV_VAR] || "";
     if (!arkApiKey?.trim()) {
       return {
         success: false,
         originalText: text,
         analysis: "",
-        error: "Ark API key not configured. Please provide apiKey parameter or set ARK_API_KEY environment variable.",
+        error: `Ark API key not configured. Set ${ArkAnalysisService.ARK_API_KEY_ENV_VAR} environment variable.`,
         timestamp: Date.now(),
         processingTimeMs: Date.now() - startTime,
       };
